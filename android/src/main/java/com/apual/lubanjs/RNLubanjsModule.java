@@ -1,5 +1,5 @@
 
-package com.dfzn.lubanjs;
+package com.apual.lubanjs;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -9,7 +9,6 @@ import com.facebook.react.bridge.ReadableMap;
 
 import android.net.Uri;
 import android.os.Environment;
-import android.os.Parcel;
 import android.text.TextUtils;
 
 
@@ -52,7 +51,7 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
 
     uris.add(Uri.parse(filepath));
 
-    Luban.with(reactContext).load(uris).ignoreBy(100).setTargetDir(getPath()).filter(new CompressionPredicate() {
+    Luban.with(reactContext).load(uris).ignoreBy(100).setTargetDir(getPath(targetdir)).filter(new CompressionPredicate() {
       @Override
       public boolean apply(String path) {
         return !(TextUtils.isEmpty(path) || path.toLowerCase().endsWith(".gif"));
@@ -61,8 +60,12 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
 
   }
 
-  private String getPath() {
-    String path = Environment.getExternalStorageDirectory() + "/com.dfzn.lubanjs/image/";
+  private String getPath(String filepath) {
+
+    if(filepath==""){
+      filepath = "/com.apual.lubanjs/image/";
+    }
+    String path = Environment.getExternalStorageDirectory() + filepath;
     File file = new File(path);
     if (file.mkdirs()) {
       return path;

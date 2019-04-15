@@ -1,5 +1,5 @@
 
-package com.dfzn.lubanjs;
+package com.apual.lubanjs;
 
 import java.util.Arrays;
 import java.util.Collections;

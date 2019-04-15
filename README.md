@@ -43,3 +43,133 @@ import RNLubanjs from 'react-native-lubanjs';
 RNLubanjs;
 ```
   
+
+##Example
+
+```javascript
+
+/**
+ * Sample React Native App
+ * https://github.com/facebook/react-native
+ *
+ * @format
+ * @flow
+ */
+
+import React, { Component } from 'react';
+import { Platform, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import RNLubanjs from 'react-native-lubanjs';
+import ImagePicker from 'react-native-image-crop-picker';
+
+const instructions = Platform.select({
+  ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
+  android:
+    'Double tap R on your keyboard to reload,\n' +
+    'Shake or press menu button for dev menu',
+});
+
+type Props = {};
+export default class App extends Component<Props> {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      filepath: '',
+      outfile: '',
+      selectedImages:[] ,
+    }
+  }
+
+  componentDidMount() {
+ 
+  }
+
+  onProcessStatus = (result,content)=>{
+
+	  if(result=='OK'){
+		  //SUCESSED
+	  }
+	  else{
+		  //Failed
+	  }
+
+    console.info(result);
+
+    console.info(content);
+  }
+
+  processImage = (filepath) => {
+ 
+    let filelist = [filepath.path]; 
+    let options = {filepath:filepath.path,targetdir:'/com.apual.lubanjs/compress/images/'};
+    console.info(filepath.path);
+    RNLubanjs.Compress(options,this.onProcessStatus);
+  }
+
+  pickImage() { 
+    if (this.state.selectedImages.length >= 9) { 
+      return;
+    }
+    ImagePicker.openPicker({
+      width: 300,
+      height: 300,
+      cropping: false,
+      multiple: Platform.OS == 'ios' ? true : false,
+    }).then(image => {
+      let arr = [];
+      //arr.push(image.path);
+      if (Platform.OS == 'ios') {
+        for (let i = 0; i < image.length; i++) {
+          arr.push({ type: 'image', path: image[i].path });
+        }
+      } else {
+        arr.push({ type: 'image', path: image.path });
+      }
+
+      this.setState({ selectedImages: arr });
+
+
+      if(arr.length>0){
+
+        this.processImage(arr[0]);
+      }
+
+    });
+  }
+  render() {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.welcome}>Welcome to React Native!</Text>
+        <TouchableOpacity onPress={() => {
+          this.pickImage();
+        }}>
+          <Text style={styles.instructions}>select Image </Text>
+        </TouchableOpacity>
+
+        <Text style={styles.instructions}>{instructions}</Text>
+      </View>
+    );
+  }
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5FCFF',
+  },
+  welcome: {
+    fontSize: 20,
+    textAlign: 'center',
+    margin: 10,
+  },
+  instructions: {
+    textAlign: 'center',
+    color: '#333333',
+    marginBottom: 5,
+  },
+});
+
+
+```
