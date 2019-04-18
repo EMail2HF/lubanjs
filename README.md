@@ -10,7 +10,8 @@
 `$ react-native link react-native-lubanjs`
 
 ### Manual installation
-
+# git
+ https://github.com/EMail2HF/lubanjs
 
 #### iOS
 
@@ -44,13 +45,13 @@ RNLubanjs;
 ```
   
 
-##Example
+## Example 1
 
 ```javascript
 
 /**
  * Sample React Native App
- * https://github.com/facebook/react-native
+ * https://github.com/EMail2HF/lubanjs
  *
  * @format
  * @flow
@@ -171,5 +172,129 @@ const styles = StyleSheet.create({
   },
 });
 
+
+```
+
+## Example 2
+
+```javascript
+/**
+ * Sample React Native App
+ * https://github.com/EMail2HF/lubanjs
+ *
+ * @format
+ * @flow
+ */
+
+import React, { Component } from 'react';
+import { Platform, StyleSheet, Text, View, TouchableOpacity, DeviceEventEmitter } from 'react-native';
+import RNLubanjs from 'react-native-lubanjs';
+import ImagePicker from 'react-native-image-crop-picker';
+
+const instructions = Platform.select({
+  ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
+  android:
+    'Double tap R on your keyboard to reload,\n' +
+    'Shake or press menu button for dev menu',
+});
+
+type Props = {};
+export default class App extends Component<Props> {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      filepath: '',
+      outfile: '',
+      selectedImages: [],
+    }
+  }
+
+  componentWillMount() {
+
+    this.subscription = DeviceEventEmitter.addListener('lubanjs-event', function (msg) {
+      console.log(msg);
+
+      if(msg.status=="begin"){    //
+      }
+      else if(msg.status=="finished"){
+        //
+        let filearray = msg.content;
+      }
+      else{
+        //failed
+      }
+    });
+  }
+ 
+
+  componentWillUnmount() {
+
+    this.subscription.remove();
+
+  }
+
+ 
+
+  processImage = (filepath) => { 
+    let filelist = [filepath.path]; 
+    let options = {targetdir: '/Lubanjs/processed/images/', filelist: [filepath.path] };
+    console.info(filepath.path);
+    //IMProcesser.Compress(options, this.onProcessStatus);
+
+    IMProcesser.CompressP(options);
+  }
+
+  
+
+  pickImage() {
+    //this.props.navigation.navigate('TestCameraKitScene');
+    if (this.state.selectedImages.length >= 9) {
+      //Toast.showShortCenter('最多只能添加9张图片');
+      return;
+    }
+    ImagePicker.openPicker({
+      width: 300,
+      height: 300,
+      cropping: false,
+      multiple: Platform.OS == 'ios' ? true : false,
+    }).then(image => {
+      let arr = [];
+      //arr.push(image.path);
+      if (Platform.OS == 'ios') {
+        for (let i = 0; i < image.length; i++) {
+          arr.push({ type: 'image', path: image[i].path });
+        }
+      } else {
+        arr.push({ type: 'image', path: image.path });
+      }
+
+      this.setState({ selectedImages: arr });
+
+
+      if (arr.length > 0) {
+
+        this.processImage(arr[0]);
+      }
+
+    });
+  }
+  render() {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.welcome}>Welcome to React Native!</Text>
+        <TouchableOpacity onPress={() => {
+          this.pickImage();
+        }}>
+          <Text style={styles.instructions}>select Image </Text>
+        </TouchableOpacity>
+
+        <Text style={styles.instructions}>{instructions}</Text>
+      </View>
+    );
+  }
+}
+
+ 
 
 ```

@@ -1,16 +1,22 @@
 
 package com.apual.lubanjs;
 
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableArray;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
 
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.text.TextUtils;
-
 
 import java.io.File;
 import java.util.ArrayList;
@@ -26,9 +32,15 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
 
   private Callback notifyCB;
 
+  private int nfileCount;
+
+  private WritableArray nResultList;
+
   public RNLubanjsModule(ReactApplicationContext reactContext) {
     super(reactContext);
     this.reactContext = reactContext;
+    nfileCount = 0;
+
   }
 
   @Override
@@ -36,33 +48,104 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
     return "RNLubanjs";
   }
 
+  public String Uri2FilePath(String struri) {
+
+    String result = struri;
+    int index = struri.indexOf(new String("file:///"));
+
+    if (index >= 0) {
+
+      return result;
+    }
+
+    // int index1 = struri.indexOf(new String("content://"));
+
+    if (struri.indexOf(new String("content://")) >= 0) {
+
+      result = GetPathFromUri4kitkat.getPath(this.reactContext, Uri.parse(struri));
+
+      result = "file://" + result;
+
+    }
+
+    return result;
+  }
+
+  /**
+   *
+   * @param eventName 事件的名称
+   * @param obj       对应的Value
+   */
+  public void sendEventToJs(String eventName, Object obj) {
+    getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(eventName, obj);
+  }
+
   @ReactMethod
   public void Compress(ReadableMap options, Callback processCallback) {
 
     this.notifyCB = processCallback;
 
-    final String filepath = options.getString("filepath");
+    final String fileuri = options.getString("filepath");
     final String targetdir = options.getString("targetdir");
     // final String position = options.getString("position");
 
-    File file = new File(filepath);
+    final String filepath = this.Uri2FilePath((fileuri));
 
     final List<Uri> uris = new ArrayList<>();
 
     uris.add(Uri.parse(filepath));
 
-    Luban.with(reactContext).load(uris).ignoreBy(100).setTargetDir(getPath(targetdir)).filter(new CompressionPredicate() {
-      @Override
-      public boolean apply(String path) {
-        return !(TextUtils.isEmpty(path) || path.toLowerCase().endsWith(".gif"));
-      }
-    }).setCompressListener(myCompressLisenser).launch();
+    Luban.with(reactContext).load(uris).ignoreBy(100).setTargetDir(getPath(targetdir))
+        .filter(new CompressionPredicate() {
+          @Override
+          public boolean apply(String path) {
+            return !(TextUtils.isEmpty(path) || path.toLowerCase().endsWith(".gif"));
+          }
+        }).setCompressListener(myCompressLisenser).launch();
 
+  }
+
+  @ReactMethod
+  public void CompressWithNotify(ReadableMap options) {
+
+    try {
+
+      final String fileuri = options.getString("filepath");
+      final String targetdir = options.getString("targetdir");
+      final ReadableArray filelist = options.getArray("filelist");
+      nfileCount = filelist.size();
+
+      final List<Uri> uris = new ArrayList<>();
+
+      // WritableArray notifystring= Arguments.createArray();
+
+      for (int index = 0; index < filelist.size(); index++) {
+
+        String filename = filelist.getString(index);
+        final String filepath = this.Uri2FilePath(filename);
+        uris.add(Uri.parse(filepath));
+      }
+
+      Luban.with(reactContext).load(uris).ignoreBy(100).setTargetDir(this.getPath(targetdir))
+          .filter(new CompressionPredicate() {
+            @Override
+            public boolean apply(String path) {
+              return !(TextUtils.isEmpty(path) || path.toLowerCase().endsWith(".gif"));
+            }
+          }).setCompressListener(myPromistLisenser).launch();
+
+    } catch (Exception e) {
+
+      WritableMap msg = Arguments.createMap();
+      msg.putString("status", "Failed");
+      msg.putString("content", e.getMessage());
+      sendEventToJs("lubanjs-event", msg);
+    }
   }
 
   private String getPath(String filepath) {
 
-    if(filepath==""){
+    if (filepath == "") {
       filepath = "/com.apual.lubanjs/image/";
     }
     String path = Environment.getExternalStorageDirectory() + filepath;
@@ -71,6 +154,36 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
       return path;
     }
     return path;
+  }
+
+  public void  OnProcessSucessed(File file){   
+    
+    try {
+
+      String result = "OK";
+      String content = file.getAbsolutePath();
+      String filepath = Uri2FilePath(content);
+      Uri furi = Uri.fromFile(file);
+  
+      String fieluri = furi.toString();
+  
+      Integer fc = nfileCount;
+  
+      WritableMap msg = Arguments.createMap();
+      msg.putString("status", "finished");
+      msg.putString("uri", fieluri);
+      msg.putString("count", fc.toString());
+      msg.putString("fieluri", filepath);     
+      sendEventToJs("lubanjs-event", msg); 
+      
+    } catch (Exception e) {
+      //TODO: handle exception
+
+      WritableMap msg = Arguments.createMap();
+      msg.putString("status", "Failed");
+      msg.putString("content", e.getMessage());
+      sendEventToJs("lubanjs-event", msg);
+    }
   }
 
   public OnCompressListener myCompressLisenser = new OnCompressListener() {
@@ -91,9 +204,9 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
       String result = "OK";
       String content = file.getAbsolutePath();
 
-      Uri  furi = Uri.fromFile(file);
+      Uri furi = Uri.fromFile(file);
 
-      content= furi.toString();
+      content = furi.toString();
 
       notifyCB.invoke(result, content);
     }
@@ -108,7 +221,36 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
       notifyCB.invoke(result, content);
     };
 
+  };
 
+  public OnCompressListener myPromistLisenser = new OnCompressListener() {
+    @Override
+    public void onStart() {
+
+      WritableMap msg = Arguments.createMap();
+      msg.putString("status", "begin");
+      sendEventToJs("lubanjs-event", msg);
+
+    }
+
+    @Override
+    public void onSuccess(File file) {
+
+      OnProcessSucessed(file);
+    }
+
+    @Override
+    public void onError(Throwable e) {
+
+      String result = "Failed";
+      String content = e.getMessage();
+
+      WritableMap msg = Arguments.createMap();
+      msg.putString("status", "failed");
+      msg.putString("content", content);
+      sendEventToJs("lubanjs-event", msg);
+
+    }
   };
 
 }
