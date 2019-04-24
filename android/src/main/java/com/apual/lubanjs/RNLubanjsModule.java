@@ -34,12 +34,15 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
 
   private int nfileCount;
 
+  private String eventName;
+
   private WritableArray nResultList;
 
   public RNLubanjsModule(ReactApplicationContext reactContext) {
     super(reactContext);
     this.reactContext = reactContext;
     nfileCount = 0;
+    eventName = "lubanjs-event";
 
   }
 
@@ -77,7 +80,8 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
    * @param obj       对应的Value
    */
   public void sendEventToJs(String eventName, Object obj) {
-    getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(eventName, obj);
+    getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(this.eventName,
+        obj);
   }
 
   @ReactMethod
@@ -110,10 +114,19 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
 
     try {
 
-      final String fileuri = options.getString("filepath");
+      final String eName = options.getString("event");
       final String targetdir = options.getString("targetdir");
       final ReadableArray filelist = options.getArray("filelist");
       nfileCount = filelist.size();
+
+      this.nResultList = Arguments.createArray();
+      this.eventName = eName;
+
+      final String imagedir = this.getPath(targetdir);
+      
+      File filedir = new File(imagedir);
+
+      deleteDirWihtFile(filedir);
 
       final List<Uri> uris = new ArrayList<>();
 
@@ -137,10 +150,30 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
     } catch (Exception e) {
 
       WritableMap msg = Arguments.createMap();
-      msg.putString("status", "Failed");
+      msg.putString("status", "failed");
+      msg.putString("state", "CompressWithNotify");
       msg.putString("content", e.getMessage());
       sendEventToJs("lubanjs-event", msg);
     }
+  }
+
+  public static void deleteDirWihtFile(File dir) {
+
+    try {
+      if (dir == null || !dir.exists() || !dir.isDirectory())
+        return;
+      for (File file : dir.listFiles()) {
+        if (file.isFile())
+          file.delete(); // 删除所有文件
+        else if (file.isDirectory())
+          deleteDirWihtFile(file); // 递规的方式删除文件夹
+      }
+
+    } catch (Exception e) {
+      // TODO: handle exception
+    }
+
+    // dir.delete();// 删除目录本身
   }
 
   private String getPath(String filepath) {
@@ -156,31 +189,32 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
     return path;
   }
 
-  public void  OnProcessSucessed(File file){   
-    
+  public void OnProcessSucessed(File file) {
+
     try {
 
       String result = "OK";
       String content = file.getAbsolutePath();
       String filepath = Uri2FilePath(content);
       Uri furi = Uri.fromFile(file);
-  
+
       String fieluri = furi.toString();
-  
+
       Integer fc = nfileCount;
-  
+
       WritableMap msg = Arguments.createMap();
       msg.putString("status", "finished");
       msg.putString("uri", fieluri);
       msg.putString("count", fc.toString());
-      msg.putString("fieluri", filepath);     
-      sendEventToJs("lubanjs-event", msg); 
-      
+      msg.putString("fieluri", filepath);
+      sendEventToJs("lubanjs-event", msg);
+
     } catch (Exception e) {
-      //TODO: handle exception
+      // TODO: handle exception
 
       WritableMap msg = Arguments.createMap();
-      msg.putString("status", "Failed");
+      msg.putString("status", "failed");
+      msg.putString("state", "OnProcessSucessed");
       msg.putString("content", e.getMessage());
       sendEventToJs("lubanjs-event", msg);
     }
@@ -242,7 +276,7 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
     @Override
     public void onError(Throwable e) {
 
-      String result = "Failed";
+      String result = "failed";
       String content = e.getMessage();
 
       WritableMap msg = Arguments.createMap();
