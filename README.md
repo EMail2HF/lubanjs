@@ -236,13 +236,23 @@ export default class App extends Component<Props> {
 
  
 
-  processImage = (filepath) => { 
-    let filelist = [filepath.path]; 
-    let options = {targetdir: '/Lubanjs/processed/images/', filelist: [filepath.path] };
-    console.info(filepath.path);
-    //IMProcesser.Compress(options, this.onProcessStatus);
+  processImage = () => { 
+   try {
 
-    IMProcesser.CompressP(options);
+      let images = this.state.selectedImages;
+
+      let filelist = images.map(item => {
+        return item.path;
+      })
+      if (filelist.length > 0) {
+        let options = { filelist: filelist, targetdir: '/lubanjs/compress/images/' };
+
+        RNLubanjs.CompressWithNotify(options);
+      }
+
+    } catch (error) {
+      console.info(error)
+    }
   }
 
   
@@ -274,7 +284,7 @@ export default class App extends Component<Props> {
 
       if (arr.length > 0) {
 
-        this.processImage(arr[0]);
+        this.processImage();
       }
 
     });
