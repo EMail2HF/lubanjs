@@ -110,6 +110,25 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
+  public void RemoveFile(ReadableMap options) {
+
+    try {
+
+      final String targetdir = options.getString("targetdir");
+
+      final String imagedir = this.getPath(targetdir);
+      
+      File filedir = new File(imagedir);
+
+      deleteDirWihtFile(filedir);
+      
+    } catch (Exception e) {
+      //TODO: handle exception
+    }
+
+  }
+
+  @ReactMethod
   public void CompressWithNotify(ReadableMap options) {
 
     try {
@@ -124,9 +143,9 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
 
       final String imagedir = this.getPath(targetdir);
       
-      File filedir = new File(imagedir);
+      // File filedir = new File(imagedir);
 
-      deleteDirWihtFile(filedir);
+      // deleteDirWihtFile(filedir);
 
       final List<Uri> uris = new ArrayList<>();
 
