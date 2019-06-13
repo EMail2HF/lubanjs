@@ -11,6 +11,10 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.zero.smallvideorecord.LocalMediaCompress;
+import com.zero.smallvideorecord.model.AutoVBRMode;
+import com.zero.smallvideorecord.model.LocalMediaConfig;
+import com.zero.smallvideorecord.model.OnlyCompressOverBean;
 
 import android.database.Cursor;
 import android.net.Uri;
@@ -124,6 +128,70 @@ public class RNLubanjsModule extends ReactContextBaseJavaModule {
       
     } catch (Exception e) {
       //TODO: handle exception
+    }
+
+  }
+  @ReactMethod
+  public void CompressVideo(ReadableMap options) {
+
+    try {
+
+      final String eName = options.getString("event");
+      final String targetdir = options.getString("targetdir");
+      final String videopath = options.getString("videopath");
+      this.eventName = eName;
+      new Thread(new Runnable() {
+        @Override
+        public void run() {
+          //视频压缩
+          LocalMediaConfig.Buidler buidler = new LocalMediaConfig.Buidler();
+          final LocalMediaConfig config = buidler
+                  .setVideoPath(videopath)
+                  .captureThumbnailsTime(1)
+                  .doH264Compress(new AutoVBRMode())
+                  .setFramerate(15)
+                  .build();
+          OnlyCompressOverBean onlyCompressOverBean = new LocalMediaCompress(config).startCompress();
+
+          if(onlyCompressOverBean.isSucceed()){
+
+            String video_result = onlyCompressOverBean.getVideoPath();
+
+            String image_result = onlyCompressOverBean.getVideoPath();
+
+            System.out.println("压缩视频地址:"+onlyCompressOverBean.getVideoPath());
+            System.out.println("压缩视频预览图:"+onlyCompressOverBean.getPicPath());
+
+            WritableMap msg = Arguments.createMap();
+            msg.putString("status", "finished");
+            msg.putString("video", video_result);
+            msg.putString("image", image_result);
+            sendEventToJs(eName, msg);
+
+          }
+          else{
+
+            WritableMap msg = Arguments.createMap();
+            msg.putString("status", "failed");
+            msg.putString("video", "failed");
+            msg.putString("image", "failed");
+            sendEventToJs(eName, msg);
+          }
+
+
+
+
+          //TODO 执行上传操作
+        }
+      }).start();
+
+    } catch (Exception e) {
+      //TODO: handle exception
+      WritableMap msg = Arguments.createMap();
+      msg.putString("status", "failed");
+      msg.putString("state", "CompressVieo");
+      msg.putString("content", e.getMessage());
+      sendEventToJs("lubanjs-event", msg);
     }
 
   }
